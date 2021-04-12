@@ -1,14 +1,12 @@
 #!/usr/bin/env Rscript
-library(tidyverse,quietly = T)
-library(GGally,quietly = T)
-theme_set(theme_bw())
-
+suppressPackageStartupMessages({
+    library(argparse)
+})
 
 main_wrap = function(raw_DNA_folder, raw_RNA_folder, threshold.reads=-Inf, 
-                     method="MPRA", output.name) {
+                     method="MPRA", output.name="qc_output") {
   
-  # consider using 'argparse' for better input handing
-  
+  # TO-DO: Add STARR option
   if(method!="MPRA") stop("No current implementation for non-MPRA experiments!")
   
   ### glossary:
@@ -179,14 +177,26 @@ main_wrap = function(raw_DNA_folder, raw_RNA_folder, threshold.reads=-Inf,
 }  
 
 
+# Parse command-line arguments
+parser <- ArgumentParser()
+parser$add_argument("-d", "--dnas", required=T, help="Folder with Raw DNA counts")
+parser$add_argument("-r", "--rnas", required=T, help="Folder with Raw RNA counts")
+parser$add_argument("--method", required=F, choices=c("MPRA", "STARR"),  
+                    default="MPRA", help="Specify the experiment type.")
+parser$add_argument("--threshold-reads", required=F,   
+                    default="-Inf", help="Threshold used to filter out low DNA count elements.")
+parser$add_argument("-o", "--outfile", required=F, 
+                    help="Output rootname for newly generated QC files.")
 
-### run from script:
-# main_wrap(raw_DNA_folder = c("data/processed/hepg2/DNA/"),
-#           raw_RNA_folder = c("data/processed/hepg2/RNA/"),
-#           output.name = "hepg2_normal")
-# main_wrap(raw_DNA_folder = c("data/processed/hepg2/DNA/"),
-#           raw_RNA_folder = c("data/processed/hepg2/RNA/"),
-#           output.name = "hepg2_normal", method = "STARR") # not implemented
-# main_wrap(raw_DNA_folder = c("data/processed/k562/DNA/"),
-#           raw_RNA_folder = c("data/processed/k562/RNA/"),
-#           output.name = "k562_normal")
+args <- parser$parse_args()
+# load libraries after successfully parsing the command-line arguments
+suppressPackageStartupMessages({
+    library(argparse)
+    library(tidyverse)
+    library(GGally)
+})
+theme_set(theme_bw())
+main_wrap(args$dnas, args$rnas, 
+          threshold.reads=as.numeric(args$threshold_reads), 
+          method=args$method, 
+          args$outfile)
