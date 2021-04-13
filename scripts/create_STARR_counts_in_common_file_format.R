@@ -107,4 +107,4 @@ seqlib_df = seqlib_df[, col_order]
 
 # write the dataframe into output format required
 
-write.table(seqlib_df, file=paste0(args$outfile), quote=FALSE, sep='\t');
+write.table(seqlib_df, file=paste0(args$outfile), quote=FALSE, row.names=FALSE, sep='\t');
