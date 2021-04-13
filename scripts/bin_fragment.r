@@ -23,6 +23,9 @@ parser$add_argument("--bin", required=F, action='store_true', default=FALSE, hel
 parser$add_argument('-s', "--size", required=F, default=50, type="integer", help="Specify bin size")
 parser$add_argument('--o', required=F, action="store_true", default=FALSE, help="Specify if orientation needs to be separated")
 parser$add_argument("-o", "--outfile", required=F, help="Output filename")
+parser$add_argument("--minFragmentLength", required=F, default = -1, type="integer", help="Specify the minimum size of fragments")
+parser$add_argument("--maxFragmentLength", required=F, default = -1, type="integer", help="Specify the maximum size of fragments")
+
 
 # this function will be used to merge counts from replicates
 merge_counts = function( x, y, name ) {
@@ -93,6 +96,11 @@ for( i in 1:length(args$input) ){
                                starts.in.df.are.0based=FALSE)
     colnames(mcols(x)) = c(sample)
     
+    # Filter fragments based on size
+    if(args$minFragmentLength != -1 & args$maxFragmentLength != -1){
+        x = x[width(x) >= args$minFragmentLength & width(x) <= args$maxFragmentLength]
+    }
+    
     mcols(frag_count)[,sample] = 0;
     frag_count = merge_counts(frag_count, x, sample);
 
@@ -102,7 +110,28 @@ for( i in 1:length(args$input) ){
 
 if(args$bin){
     binned_frag_count = bin_fragments(frag_count, binSize=args$size)
-    # Save
-    write.table(binned_frag_count, file=paste0(args$outfile), quote=FALSE, sep='\t');
+#     # Save
+#     write.table(binned_frag_count, file=paste0(args$outfile), quote=FALSE, sep='\t');
+    
+    # Convert binned fragments count GRanges to dataframe for each replicate 
+    for( i in 1:length(colnames(mcols(binned_frag_count)))){
+        sample = colnames(mcols(binned_frag_count))[i]
+        seqlib = binned_frag_count$sample
+        
+        seqlib = as.data.frame(seqlib)
+        cols_to_add = data.frame(name=paste0(seqlib$seqnames,"_", seqlib$start,"_",seqlib$end), 
+                         score = pmin(seqlib$count,1000), 
+                         barcode = '.')
+        
+        seqlib_df = cbind(seqlib, cols_to_add)
+        col_order = c('seqnames','start','end','name','score','strand','count','barcode')
+        seqlib_df = selib_df[, col_order]
+        
+        # Save
+        write.table(seqlib_df, file=paste0(args$outfile[i]), quote=FALSE, sep='\t');
+    }
 }
+
+
+
 
