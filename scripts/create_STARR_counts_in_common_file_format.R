@@ -11,6 +11,7 @@ suppressPackageStartupMessages({
     library(GenomicRanges)
     library(RColorBrewer)
     library(doParallel)
+    library(tidyr)
     library(argparse)
 });
 
@@ -97,14 +98,13 @@ print(seqlib)
 # convert the GRanges object to dataframe and add columns corresponding to name, score and barcode information as per the common file format needed
 
 seqlib = as.data.frame(seqlib)
-cols_to_add = data.frame(name=paste0(seqlib$seqnames,"_", seqlib$start,"_",seqlib$end), 
-                         score = pmin(seqlib$count,1000), 
-                         barcode = '.')
+seqlib = unite(seqlib,"name",seqnames:end,remove=FALSE)
+seqlib$score = pmin(seqlib$count,1000)
+seqlib$barcode = '.'
 
-seqlib_df = cbind(seqlib, cols_to_add)
 col_order = c('seqnames','start','end','name','score','strand','count','barcode')
-seqlib_df = seqlib_df[, col_order]
+seqlib = seqlib[, col_order]
 
 # write the dataframe into output format required
 
-write.table(seqlib_df, file=paste0(args$outfile), quote=FALSE, row.names=FALSE, sep='\t');
+write.table(seqlib, file=paste0(args$outfile), quote=FALSE, row.names=FALSE, sep='\t');
